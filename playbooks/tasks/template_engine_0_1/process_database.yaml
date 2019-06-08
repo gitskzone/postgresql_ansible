@@ -1,0 +1,13 @@
+---
+# - name: process databases
+#   debug:
+#     var: item
+
+- name: "Create a new database with name '{{ item.db_name }}'"
+  postgresql_db:
+    name: "{{ item.db_name }}"
+    encoding: "{{ item.db_encoding }}"
+    conn_limit: "{{ item.db_conn_limit }}"
+    owner: "{{ item.db_owner }}"
+  become: yes
+  become_user: postgres      

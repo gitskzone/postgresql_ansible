@@ -1,0 +1,23 @@
+---
+- hosts: all
+  connection: local
+  gather_facts: false
+
+  pre_tasks:
+
+  - name: "load database vars"
+    include_vars: 
+      file: ./clusters/localhost.yaml
+
+  - debug: 
+      msg: "template version: {{ template_version }}"
+
+  tasks:
+
+  - include_tasks: ./tasks/template_engine_0_1/process_database.yaml
+    vars: 
+      database: item
+    loop: "{{ database_list }}"
+    loop_control: 
+      label: "{{ item.db_name }}"
+    when: template_version == 0.1
