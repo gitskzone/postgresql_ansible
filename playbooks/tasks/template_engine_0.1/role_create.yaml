@@ -1,0 +1,43 @@
+---
+
+- name: "Create role '{{ _role.role_name }}' in database '{{ db_name }}'"
+  postgresql_user:
+    db: "{{ db_name }}"
+    name: "{{ _role.role_name }}"
+    role_attr_flags: NOLOGIN
+  become: yes
+  become_user: postgres        
+  
+- name: "Create role '{{ _role.role_name }}' in database '{{ db_name }}'"
+  postgresql_user:
+    db: "{{ db_name }}"
+    name: "{{ _role.role_name }}"
+    role_attr_flags: NOLOGIN
+  become: yes
+  become_user: postgres   
+  
+  
+  
+  
+  
+  
+  
+  # postgresql_privs:
+  #   database: "{{ db_name }}"
+  #   name: "{{ _schema.schema_name }}"
+  #   owner: "{{ _schema.schema_owner }}"
+  # become: yes
+  # become_user: postgres   
+
+- name: "Add extension to schema '{{ _schema.schema_name }}' in database '{{ db_name }}'" 
+  postgresql_ext:
+    name: "{{ ext_name }}"
+    db: "{{ db_name }}"
+    schema: "{{ _schema.schema_name }}"
+    cascade: true
+  loop: "{{ _schema.schema_extensions }}"
+  loop_control:
+    loop_var: ext_name
+  when: _schema.schema_extensions is defined
+  become: yes
+  become_user: postgres       
