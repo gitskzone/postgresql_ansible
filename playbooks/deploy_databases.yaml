@@ -16,8 +16,9 @@
 
   - include_tasks: ./tasks/template_engine_0_1/process_database.yaml
     vars: 
-      database: item
+      db: "{{ item }}"
     loop: "{{ database_list }}"
     loop_control: 
       label: "{{ item.db_name }}"
     when: template_version == 0.1
+

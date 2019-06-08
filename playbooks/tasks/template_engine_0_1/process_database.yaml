@@ -1,13 +1,51 @@
 ---
-# - name: process databases
-#   debug:
-#     var: item
 
-- name: "Create a new database with name '{{ item.db_name }}'"
+# - name: "Transfer db vars"
+#   set_fact:
+#     db: "{{ item }}"
+
+- name: "Create a new database with name '{{ db.db_name }}'"
   postgresql_db:
-    name: "{{ item.db_name }}"
-    encoding: "{{ item.db_encoding }}"
-    conn_limit: "{{ item.db_conn_limit }}"
-    owner: "{{ item.db_owner }}"
+    name: "{{ db.db_name }}"
+    encoding: "{{ db.db_encoding }}"
+    conn_limit: "{{ db.db_conn_limit }}"
+    owner: "{{ db.db_owner }}"
   become: yes
   become_user: postgres      
+
+- name: "Add extension to database"
+  postgresql_ext:
+    name: "{{ ext }}"
+    db: "{{ db.db_name }}"
+    cascade: true
+  loop: "{{ db.db_extensions }}"
+  loop_control:
+    loop_var: ext
+  when: db.db_extensions is defined
+  become: yes
+  become_user: postgres      
+
+- name: "Create logins and grant access to database '{{ db.db_name }}'"
+  postgresql_user:
+    db: "{{ db.db_name }}"
+    name: "{{ login.login_name }}"
+    priv: "{{ login.login_priv }}"
+    conn_limit: "{{ login.login_conn_limit }}"
+  loop: "{{ db.db_logins }}"
+  loop_control:
+    loop_var: login
+    label: "{{ login.login_name }}"
+  when: db.db_logins is defined
+  become: yes
+  become_user: postgres      
+  
+- include_tasks: ./tasks/template_engine_0_1/schema_create.yaml
+  vars: 
+    _schema: "{{ schema }}"
+    db_name: "{{ db.db_name }}"
+  loop: "{{ db.db_schemas }}"
+  loop_control: 
+    loop_var: schema
+    label: "{{ schema.schema_name }}"
+  when: db.db_schemas is defined
+    
