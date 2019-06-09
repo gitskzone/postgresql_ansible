@@ -34,7 +34,7 @@
   become: yes
   become_user: postgres      
   
-- include_tasks: "./tasks/template_engine_{{ template_version }}/schema_create.yaml"
+- include_tasks: "./tasks/template_engine_{{ template_version }}/create_schema.yaml"
   vars: 
     _schema: "{{ schema }}"
     db_name: "{{ database.db_name }}"
@@ -44,7 +44,7 @@
     label: "{{ schema.schema_name }}"
   when: database.db_schemas is defined
     
-- include_tasks: "./tasks/template_engine_{{ template_version }}/role_create.yaml"
+- include_tasks: "./tasks/template_engine_{{ template_version }}/create_role.yaml"
   vars: 
     _role: "{{ role }}"
     db_name: "{{ database.db_name }}"
