@@ -1,24 +1,26 @@
 ---
 - hosts: all
-  connection: local
   gather_facts: false
 
   pre_tasks:
+  - name: "Return list of files to process for the cluster"
+    find:
+      paths: "../postgresql_clusters/{{ inventory_hostname }}/"
+      patterns: '*.yaml'
+      file_type: file
+    register: file_list
+    delegate_to: 127.0.0.1
 
-  - name: "load database vars"
-    include_vars: 
-      file: ./clusters/localhost.yaml
-
-  - debug: 
-      msg: "template version: {{ template_version }}"
+  - name: list files
+    debug:
+      msg: "{{ file_list | json_query('files[*].path') }}"
 
   tasks:
-
-  - include_tasks: "./tasks/template_engine_{{ template_version }}/process_database.yaml"
+  - include_tasks: "./tasks/init_database_process.yaml"
     vars: 
-      db: "{{ item }}"
-    loop: "{{ database_list }}"
+      file: "{{ item }}"
+    loop: "{{ file_list.files }}"
     loop_control: 
-      label: "{{ item.db_name }}"
-
+      label: "{{ item.path}}"
+    when: file_list.matched >= 0
 

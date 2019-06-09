@@ -6,9 +6,9 @@ Initially will need to have this manually triggered from an AWX job after pr mer
 Built from a DBA perspective so developers can get new databases with minimal DBA intervention.</br>
 
 __Current Features:__
-* Basic database properties declared in a var file that can be used for initial provisioning of a database along with other attributes.
+* Basic database properties declared in var files, 1 per db that can be used for initial provisioning of a database along with other attributes.
 * Use of a template_version to allow implementation of what could be breaking changes to the playbooks while still allowing previously created database definitions to be re-processed.
-* Tested local processing (need to implement a structure for targeting specific servers).
+* Tested processing on localhost only although via ssh so should work for remote connections.
 * Uses the standard postgresql ansible modules to make changes.
 * Adding extensions to databases.
 * Creating logins and database level permissions.
@@ -20,15 +20,15 @@ __Current Features:__
 
 __To Do:__
 * Implement dns cname creation for each database.
-* File/Folder structure multi remote PostgreSQL cluster processing.
+* File/Folder structure multi remote PostgreSQL cluster processing testing
 * Additional metadata to be captured and posted to custom inventory via webapi for reporting.
  * e.g. Who's created the database, purpose, etc...
 * Default privs needs improving as only doing for tables.
-* Currently all databases defined in a single file, would be better for these to be seperate.
+
 
 __Notes:__
 Only tested with explicit table type privs or all, need to test handling functions etc...</br>
-Current test definition is stored: _./playbooks/clusters/localhost.yaml_</br>
+Current test definitions are stored: _./clusters/ubuntu/*.yaml_</br>
 
 
 __Examples:__
