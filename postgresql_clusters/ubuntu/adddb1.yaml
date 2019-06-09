@@ -15,10 +15,10 @@ database:
     - lo
   db_logins: # postgresql roles with the login permission and required database level privileges
     - login_name: product_login
-      login_priv: CONNECT/TEMP # CREATE/CONNECT/TEMP/ALL
+      login_priv: CONNECT,TEMP # CREATE,CONNECT,TEMP,ALL
       login_conn_limit: 10
     - login_name: sales_login
-      login_priv: "TEMP/CONNECT"
+      login_priv: "TEMP,CONNECT"
       login_conn_limit: 10
     - login_name: testdb_app_login
       login_priv: ALL

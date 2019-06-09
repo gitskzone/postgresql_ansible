@@ -15,7 +15,23 @@
     role_attr_flags: NOLOGIN
   become: yes
   become_user: postgres   
-  
+
+- name: "Grant schema usage & connect to owner in role '{{ db_name }}-{{ _role.role_name }}'"
+  postgresql_privs:
+    database: "{{ db_name }}"
+    privs: USAGE
+    type: schema
+    objs: "{{ schema_role.schema_name }}"
+    roles: "{{ db_name }}-{{ _role.role_name }}"
+  loop: "{{ _role.role_schema_privs }}"
+  loop_control:
+    loop_var: schema_role
+    label: "{{ schema_role.schema_name }}"
+  when: _role.role_schema_privs is defined
+  become: yes
+  become_user: postgres       
+
+
 - name: "Grant privs on schema to role '{{ db_name }}-{{ _role.role_name }}'"
   postgresql_privs:
     database: "{{ db_name }}"
