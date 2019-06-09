@@ -8,13 +8,4 @@
   debug: 
     msg: "template version: {{ template_version }}"
 
-- name: test 
-  debug:
-    var: database.db_name
-
 - include_tasks: "./tasks/template_engine_{{ template_version }}/process_database.yaml"
-  # vars: 
-  #   db: "{{ database }}"
-  # loop: "{{ database }}"
-  # loop_control: 
-  #   label: "{{ item.db_name }}"
