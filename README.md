@@ -43,3 +43,4 @@ sudo apt-get install postgresql-11 postgresql-client-11
 sudo -u postgres -i
 /usr/lib/postgresql/11/bin/pg_ctl -D /var/lib/postgresql/11/main -l logfile start
 ```
+Requires Ansible 2.8+ for some of the PostgreSQL Ansible Modules
