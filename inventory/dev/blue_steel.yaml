@@ -1,0 +1,53 @@
+---
+name: blue_steel
+type: manual_failover
+version: 14
+primary_dc: uk1
+primary_az: az1
+dr_enabled: true
+
+config:
+  metadata:
+    owner: fred_blogs
+    description: "Super amazing demo project"
+
+databases:
+  - name: appdb1
+    owner: postgres
+    encoding: UTF8
+    conn_limit: 50
+    extensions:
+      - cube
+      - lo
+    logins:
+      - login_name: product_login
+        login_privileges: CONNECT,TEMP
+        login_conn_limit: 10
+      - login_name: sales_login
+        login_privileges: "TEMP,CONNECT"
+        login_conn_limit: 10
+      - login_name: testdb_app_login
+        login_privileges: ALL
+        login_conn_limit: 5
+    schemas:
+      - schema_name: products
+        schema_owner: product_login
+        schema_extensions:
+          - hstore
+      - schema_name: sales
+        schema_owner: sales_login
+        schema_extensions: []
+    roles:
+      - name: product_development
+        privileges:
+          - schema_name: products
+            tables: SELECT,INSERT,UPDATE,DELETE
+            functions: EXECUTE
+            sequences: USAGE
+          - schema_name: sales
+            tables: SELECT
+            functions: EXECUTE
+            sequences: USAGE
+        members:
+          - product_login
+          - testdb_app_login

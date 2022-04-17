@@ -1,0 +1,9 @@
+type: manual_failover
+version: 14
+primary_dc: uk1
+primary_az: az1
+
+config:
+  volumes:
+    data: 80GB
+    wal: 40GB

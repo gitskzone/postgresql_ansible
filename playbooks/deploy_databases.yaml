@@ -3,24 +3,23 @@
   gather_facts: false
 
   pre_tasks:
-  - name: "Return list of files to process for the cluster"
-    find:
-      paths: "../postgresql_clusters/{{ inventory_hostname }}/"
-      patterns: '*.yaml'
-      file_type: file
-    register: file_list
-    delegate_to: 127.0.0.1
+    - name: "Return list of files to process for the cluster"
+      find:
+        paths: "../postgresql_clusters/{{ inventory_hostname }}/"
+        patterns: "*.yaml"
+        file_type: file
+      register: file_list
+      delegate_to: 127.0.0.1
 
-  - name: list files
-    debug:
-      msg: "{{ file_list | json_query('files[*].path') }}"
+    - name: list files
+      debug:
+        msg: "{{ file_list | json_query('files[*].path') }}"
 
   tasks:
-  - include_tasks: "./tasks/init_database_process.yaml"
-    vars: 
-      file: "{{ item }}"
-    loop: "{{ file_list.files }}"
-    loop_control: 
-      label: "{{ item.path}}"
-    when: file_list.matched >= 0
-
+    - include_tasks: "./tasks/init_database_process.yaml"
+      vars:
+        file: "{{ item }}"
+      loop: "{{ file_list.files }}"
+      loop_control:
+        label: "{{ item.path}}"
+      when: file_list.matched >= 0
