@@ -2,7 +2,7 @@
 name: blue_steel
 type: manual_failover
 version: 14
-primary_dc: uk1
+primary_region: uk1
 primary_az: az1
 dr_enabled: true
 

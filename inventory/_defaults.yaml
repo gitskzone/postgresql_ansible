@@ -1,0 +1,72 @@
+dev:
+  type: standalone
+  version: 14
+  primary_region: uk1
+  primary_az: az1
+  domain_suffix: mydomain.com
+
+  config:
+    volumes:
+      data: 40GB
+      wal: 20GB
+
+prod:
+  type: manual_failover
+  version: 14
+  primary_region: uk1
+  primary_az: az1
+  domain_suffix: mydomain.com
+
+  config:
+    volumes:
+      data: 80GB
+      wal: 40GB
+
+
+auto_failover:
+  uk1:
+    az_layout:
+      az1: 1
+      az2: 1
+      az3: 1
+    dr:
+      uk2:
+        az1: 1
+  uk2:
+    az_layout:
+      az1: 2
+      az2: 1
+    dr:
+      uk1:
+        az1: 1
+  us1:
+    az_layout:
+      az1: 1
+      az2: 1
+      az3: 1
+    dr:
+      uk2:
+        az1: 1
+
+manual_failover:
+  uk1:
+    az_layout:
+      az1: 1
+      az2: 1
+    dr:
+      uk2:
+        az1: 1
+  uk2:
+    az_layout:
+      az1: 2
+      az2: 1
+    dr:
+      uk1:
+        az1: 1
+  us1:
+    az_layout:
+      az1: 1
+      az2: 1
+    dr:
+      uk2:
+        az1: 1

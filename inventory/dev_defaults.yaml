@@ -1,9 +1,0 @@
-type: standalone
-version: 14
-primary_dc: uk1
-primary_az: az1
-
-config:
-  volumes:
-    data: 40GB
-    wal: 20GB

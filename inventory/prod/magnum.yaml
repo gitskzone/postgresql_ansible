@@ -2,12 +2,13 @@
 name: magnum
 type: auto_failover
 version: 14
-primary_dc: uk1
+primary_region: uk1
 primary_az: az1
 dr_enabled: true
 layout:
   uk1:
     az1: 3
+    az2: 1
   uk2:
     az1: 1
 
