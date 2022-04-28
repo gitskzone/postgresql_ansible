@@ -3,7 +3,7 @@
 {% block content %}
 <div class="list-group">
     {% for item in data %}
-        <a href="#" class="list-group-item list-group-item-action">{{ item }}</a>
+        <a href="/{{ type }}/{{ item }}" class="list-group-item list-group-item-action">{{ item }}</a>
     {% endfor %}
 </div>
 

@@ -6,7 +6,7 @@ import json
 from collections import defaultdict
 import argparse
 from pydantic.utils import deep_update
-from app.module.inventory import *
+from module.inventory import *
 
 
 parser = argparse.ArgumentParser()
