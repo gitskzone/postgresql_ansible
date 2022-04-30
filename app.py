@@ -1,14 +1,18 @@
-from imp import reload
+# from imp import reload
 from flask import Flask, jsonify, render_template, session, url_for, redirect
 from pathlib import Path
 from module.inventory import *
 from github import Github
 import os
 import yaml
-
+from flask_bootstrap import Bootstrap
+from flask_wtf import FlaskForm
+from wtforms import StringField, SubmitField
+from wtforms.validators import DataRequired
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = "SuperSecretTestKey"
+Bootstrap(app)
 
 github_branch = "dev"
 inventory_path = "inventory"
@@ -26,13 +30,24 @@ def get_env_defaults():
     yaml_dict = yaml.safe_load(contents.decoded_content.decode())
     return yaml_dict
 
-def get_cluster_content(env,cluster):
+
+def get_cluster_content(env,cluster=None):
     repo = get_repo()
-    contents = repo.get_contents('/'.join([inventory_path,env,cluster]),ref=github_branch)
     yaml_dict = defaultdict(dict)
-    item_name = '.'.join([cluster.replace('.yaml',''), env])
-    yaml_dict[item_name] = yaml.safe_load(contents.decoded_content.decode())
-    yaml_dict[item_name]['environment'] = env
+    if cluster == None:
+        while contents:
+            file_content = contents.pop(0)
+            if file_content.type == "dir":
+                contents.extend(repo.get_contents(file_content.path, ref=github_branch))
+            else:
+                item_name = '.'.join([contents.name.split('.')[0], env])
+                yaml_dict[item_name] = yaml.safe_load(contents.decoded_content.decode())
+                yaml_dict[item_name]['environment'] = env
+    else:
+        contents = repo.get_contents('/'.join([inventory_path,env,cluster]),ref=github_branch)
+        item_name = '.'.join([contents.name.split('.')[0], env])
+        yaml_dict[item_name] = yaml.safe_load(contents.decoded_content.decode())
+        yaml_dict[item_name]['environment'] = env
     return yaml_dict
 
 @app.route("/reload")
@@ -84,6 +99,28 @@ def cluster(cluster=None):
     hosts = get_hosts(cluster, defaults)
     return jsonify(hosts) #render_template('cluster.html', data=cluster)
 
+class NameForm(FlaskForm):
+    name = StringField('Enter a unique name for the Database cluster?', validators=[DataRequired()])
+    submit = SubmitField('Submit')
+
+@app.route('/create', methods=['GET', 'POST'])
+def create():
+    names = ['alpha','beta']
+    # you must tell the variable 'form' what you named the class, above
+    # 'form' is the variable name used in this template: index.html
+    form = NameForm()
+    message = ""
+    if form.validate_on_submit():
+        name = form.name.data
+        if name.lower() in names:
+            # empty the form field
+            form.name.data = ""
+            id = names.get(name,'Unknown')
+            # redirect the browser to another route and template
+            return redirect( url_for('actor', id=id) )
+        else:
+            message = "That actor is not in our database."
+    return render_template('create.html', names=names, form=form, message=message)
 
 if __name__ == '__main__':
     app.run(host="localhost", port=8080, debug=True)
