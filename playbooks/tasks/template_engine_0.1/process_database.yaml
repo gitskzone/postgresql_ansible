@@ -1,0 +1,55 @@
+---
+- name: "Create a new database with name '{{ database.db_name }}'"
+  postgresql_db:
+    name: "{{ database.db_name }}"
+    encoding: "{{ database.db_encoding }}"
+    conn_limit: "{{ database.db_conn_limit }}"
+    owner: "{{ database.db_owner }}"
+  become: yes
+  become_user: postgres      
+
+- name: "Add extension to database"
+  postgresql_ext:
+    name: "{{ ext }}"
+    db: "{{ database.db_name }}"
+    cascade: true
+  loop: "{{ database.db_extensions }}"
+  loop_control:
+    loop_var: ext
+  when: database.db_extensions is defined
+  become: yes
+  become_user: postgres      
+
+- name: "Create logins and grant access to database '{{ database.db_name }}'"
+  postgresql_user:
+    db: "{{ database.db_name }}"
+    name: "{{ login.login_name }}"
+    priv: "{{ login.login_priv }}"
+    conn_limit: "{{ login.login_conn_limit }}"
+  loop: "{{ database.db_logins }}"
+  loop_control:
+    loop_var: login
+    label: "{{ login.login_name }}"
+  when: database.db_logins is defined
+  become: yes
+  become_user: postgres      
+  
+- include_tasks: "./tasks/template_engine_{{ template_version }}/create_schema.yaml"
+  vars: 
+    _schema: "{{ schema }}"
+    db_name: "{{ database.db_name }}"
+  loop: "{{ database.db_schemas }}"
+  loop_control: 
+    loop_var: schema
+    label: "{{ schema.schema_name }}"
+  when: database.db_schemas is defined
+    
+- include_tasks: "./tasks/template_engine_{{ template_version }}/create_role.yaml"
+  vars: 
+    _role: "{{ role }}"
+    db_name: "{{ database.db_name }}"
+  loop: "{{ database.db_priv_roles }}"
+  loop_control: 
+    loop_var: role
+    label: "{{ role.role_name }}"
+  when: database.db_priv_roles is defined    

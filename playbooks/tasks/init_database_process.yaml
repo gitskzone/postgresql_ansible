@@ -1,0 +1,11 @@
+---
+
+- name: "load database vars from file {{ file.path }}"
+  include_vars: 
+    file: "{{ file.path }}"
+
+- name: return template version
+  debug: 
+    msg: "template version: {{ template_version }}"
+
+- include_tasks: "./tasks/template_engine_{{ template_version }}/process_database.yaml"

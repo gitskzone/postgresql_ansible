@@ -1,0 +1,79 @@
+---
+
+- name: "Create role '{{ _role.role_name }}' in database '{{ db_name }}'"
+  postgresql_user:
+    db: "{{ db_name }}"
+    name: "{{ _role.role_name }}"
+    role_attr_flags: NOLOGIN
+  become: yes
+  become_user: postgres        
+  
+- name: "Create role: '{{ db_name }}-{{ _role.role_name }}'"
+  postgresql_user:
+    db: "{{ db_name }}"
+    name: "{{ db_name }}-{{ _role.role_name }}"
+    role_attr_flags: NOLOGIN
+  become: yes
+  become_user: postgres   
+
+- name: "Grant schema usage & connect to owner in role '{{ db_name }}-{{ _role.role_name }}'"
+  postgresql_privs:
+    database: "{{ db_name }}"
+    privs: USAGE
+    type: schema
+    objs: "{{ schema_role.schema_name }}"
+    roles: "{{ db_name }}-{{ _role.role_name }}"
+  loop: "{{ _role.role_schema_privs }}"
+  loop_control:
+    loop_var: schema_role
+    label: "{{ schema_role.schema_name }}"
+  when: _role.role_schema_privs is defined
+  become: yes
+  become_user: postgres       
+
+
+- name: "Grant privs on schema to role '{{ db_name }}-{{ _role.role_name }}'"
+  postgresql_privs:
+    database: "{{ db_name }}"
+    privs: "{{ schema_role.schema_priv | upper }}"
+    #type: table
+    schema: "{{ schema_role.schema_name }}"
+    objs: ALL_IN_SCHEMA
+    roles: "{{ db_name }}-{{ _role.role_name }}"
+  loop: "{{ _role.role_schema_privs }}"
+  loop_control:
+    loop_var: schema_role
+    label: "{{ schema_role.schema_name }} - {{ schema_role.schema_priv | upper }}"
+  when: _role.role_schema_privs is defined
+  become: yes
+  become_user: postgres       
+
+- name: "Grant default privs for new tables in schema to role '{{ db_name }}-{{ _role.role_name }}'"
+  postgresql_privs:
+    database: "{{ db_name }}"
+    privs: "{{ schema_role_def.schema_priv | upper }}"
+    schema: "{{ schema_role_def.schema_name }}"
+    objs: TABLES
+    type: default_privs    
+    roles: "{{ db_name }}-{{ _role.role_name }}"
+  loop: "{{ _role.role_schema_privs }}"
+  loop_control:
+    loop_var: schema_role_def
+    label: "{{ schema_role_def.schema_name }} - {{ schema_role_def.schema_priv | upper }}"
+  when: _role.role_schema_privs is defined
+  become: yes
+  become_user: postgres    
+
+- name: "Add logins '{{ _role.role_members | join(',') }}' to role '{{ db_name }}-{{ _role.role_name }}'"
+  postgresql_membership:
+    group: "{{ db_name }}-{{ _role.role_name }}"
+    target_roles: "{{ _role.role_members }}"
+  when: _role.role_members is defined
+  become: yes
+  become_user: postgres    
+
+  
+  
+  
+  
+  
