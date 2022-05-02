@@ -16,6 +16,7 @@ Bootstrap(app)
 
 github_branch = "dev"
 inventory_path = "inventory"
+yaml_dict = defaultdict(dict)
 
 def get_repo():
     github_token = os.environ.get('GITHUB_TOKEN')
@@ -26,27 +27,33 @@ def get_repo():
 def get_env_defaults():
     repo = get_repo()
     contents = repo.get_contents('/'.join([inventory_path,"_defaults.yaml"]),ref=github_branch)
-    yaml_dict = defaultdict(dict)
+    # yaml_dict = defaultdict(dict)
     yaml_dict = yaml.safe_load(contents.decoded_content.decode())
     return yaml_dict
 
-def get_cluster_content(env,cluster=None):
+def get_cluster_content(env=None,cluster=None):
     repo = get_repo()
-    yaml_dict = defaultdict(dict)
+
+    if env != None:
+        inventory = '/'.join([inventory_path,env])
+    else:
+        inventory = inventory_path
     if cluster == None:
+        contents = repo.get_contents(inventory, ref=github_branch)
         while contents:
             file_content = contents.pop(0)
             if file_content.type == "dir":
                 contents.extend(repo.get_contents(file_content.path, ref=github_branch))
             else:
-                item_name = '.'.join([contents.name.split('.')[0], env])
-                yaml_dict[item_name] = yaml.safe_load(contents.decoded_content.decode())
-                yaml_dict[item_name]['environment'] = env
+                if file_content.name != '_defaults.yaml':
+                    item_name = '.'.join([file_content.name.split('.')[0], file_content.path.split('/')[-2]])
+                    yaml_dict[item_name] = yaml.safe_load(file_content.decoded_content.decode())
+                    yaml_dict[item_name]['environment'] = file_content.path.split('/')[-2]
     else:
-        contents = repo.get_contents('/'.join([inventory_path,env,cluster]),ref=github_branch)
-        item_name = '.'.join([contents.name.split('.')[0], env])
-        yaml_dict[item_name] = yaml.safe_load(contents.decoded_content.decode())
-        yaml_dict[item_name]['environment'] = env
+        file_content = repo.get_contents('/'.join([inventory,cluster]),ref=github_branch)
+        item_name = '.'.join([file_content.name.split('.')[0], file_content.path.split('/')[-2]])
+        yaml_dict[item_name] = yaml.safe_load(file_content.decoded_content.decode())
+        yaml_dict[item_name]['environment'] = file_content.path.split('/')[-2]
     return yaml_dict
 
 @app.route("/reload")
@@ -62,8 +69,13 @@ def list_environments():
 
 @app.route("/env/<env>")
 def list_clusters(env=None):
-    cluster_list = get_cluster_list(env)
     session['env'] = env
+    all_clusters = get_cluster_content(env)
+    #cluster_list = get_cluster_list(env)
+    cluster_list = [item for item in all_clusters]
+    # for k,v in all_clusters.items():
+    #     cluster_list.append(v['name'])
+
     return render_template('list.html', data=cluster_list, type="cluster")
 
 
@@ -93,10 +105,11 @@ def get_cluster_list(env):
 @app.route("/cluster/<cluster>")
 def cluster(cluster=None):
     env = session.get("env","")
-    defaults = get_env_defaults()
-    cluster = get_cluster_content(env, cluster)
-    hosts = get_hosts(cluster, defaults)
-    return jsonify(hosts) #render_template('cluster.html', data=cluster)
+    cluster_detail = yaml_dict[cluster]
+    # defaults = get_env_defaults()
+    # cluster = get_cluster_content(env, cluster)
+    # hosts = get_hosts(cluster, defaults)
+    return jsonify(cluster_detail) #render_template('cluster.html', data=cluster)
 
 class NameForm(FlaskForm):
     type_choices = ['standalone','manual_failover', 'auto_failover']
