@@ -6,9 +6,10 @@ from github import Github
 import os
 import yaml
 from flask_bootstrap import Bootstrap
-from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, SelectField, BooleanField
-from wtforms.validators import DataRequired
+# from flask_wtf import FlaskForm
+# from wtforms import StringField, SubmitField, SelectField, BooleanField, FormField
+# from wtforms.validators import DataRequired
+from module.forms import *
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = "SuperSecretTestKey"
@@ -111,19 +112,10 @@ def cluster(cluster=None):
     # hosts = get_hosts(cluster, defaults)
     return jsonify(cluster_detail) #render_template('cluster.html', data=cluster)
 
-class NameForm(FlaskForm):
-    type_choices = ['standalone','manual_failover', 'auto_failover']
-    version_choices = [11,12,13,14]
-    primary_region_choices = ['UK1','UK2','EU1','USWEST']
-    primary_az_choices = ['AZ1','AZ2','AZ3']
-    name = StringField('Enter a unique name for the Database cluster?', validators=[DataRequired()])
-    type = SelectField('Specify the cluster type', choices=type_choices, validators=[DataRequired()])
-    version = SelectField('Specify the database software version', choices=version_choices, default=14, validators=[DataRequired()])
-    primary_region = SelectField('Specify the primary region where cluster will be located', choices=primary_region_choices, default='UK1', validators=[DataRequired()])
-    primary_az = SelectField('Specify the primary az where cluster will be located', choices=primary_az_choices, default='AZ1', validators=[DataRequired()])
-    dr_enabled = BooleanField('Is DR required, will provide a replica in different geo-location', default=False)
 
-    submit = SubmitField('Submit')
+
+
+
 
 @app.route('/create', methods=['GET', 'POST'])
 def create():
