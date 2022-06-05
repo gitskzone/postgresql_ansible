@@ -47,12 +47,12 @@ def get_cluster_content(env=None,cluster=None):
                 contents.extend(repo.get_contents(file_content.path, ref=github_branch))
             else:
                 if file_content.name != '_defaults.yaml':
-                    item_name = '.'.join([file_content.name.split('.')[0], file_content.path.split('/')[-2]])
+                    item_name = file_content.name.split('.')[0]
                     yaml_dict[item_name] = yaml.safe_load(file_content.decoded_content.decode())
                     yaml_dict[item_name]['environment'] = file_content.path.split('/')[-2]
     else:
         file_content = repo.get_contents('/'.join([inventory,cluster]),ref=github_branch)
-        item_name = '.'.join([file_content.name.split('.')[0], file_content.path.split('/')[-2]])
+        item_name = file_content.name.split('.')[0]
         yaml_dict[item_name] = yaml.safe_load(file_content.decoded_content.decode())
         yaml_dict[item_name]['environment'] = file_content.path.split('/')[-2]
     return yaml_dict
@@ -61,23 +61,40 @@ def get_cluster_content(env=None,cluster=None):
 def reload():
     environment_list = get_environment_list()
     session['environment_list'] = environment_list
-    return redirect(url_for('.list_environments'))
+    return redirect(url_for('.clusters'))
+
+# @app.route("/")
+# def list_environments():
+#     environment_list = session.get('environment_list',[])
+#     return render_template('list_envs.html', data=environment_list)
+
+# @app.route("/env/<env>")
+# def list_clusters(env=None):
+#     session['env'] = env
+#     all_clusters = get_cluster_content(env)
+#     #cluster_list = get_cluster_list(env)
+#     cluster_list = [item for item in all_clusters]
+#     # for k,v in all_clusters.items():
+#     #     cluster_list.append(v['name'])
+
+#     return render_template('list.html', data=cluster_list, type="cluster")
 
 @app.route("/")
-def list_environments():
-    environment_list = session.get('environment_list',[])
-    return render_template('list.html', data=environment_list, type="env")
+@app.route("/clusters/<env>")
+@app.route("/clusters/<env>/<cluster>")
+def clusters(env=None, cluster=None):
 
-@app.route("/env/<env>")
-def list_clusters(env=None):
-    session['env'] = env
-    all_clusters = get_cluster_content(env)
-    #cluster_list = get_cluster_list(env)
-    cluster_list = [item for item in all_clusters]
-    # for k,v in all_clusters.items():
-    #     cluster_list.append(v['name'])
-
-    return render_template('list.html', data=cluster_list, type="cluster")
+    if env == None and cluster == None:
+        environment_list = session.get('environment_list',[])
+        return render_template('list_envs.html', data=environment_list)
+    elif env != None and cluster == None:
+        all_clusters = get_cluster_content(env)
+        cluster_list = [item for item in all_clusters]
+        return render_template('list_clusters.html', data=cluster_list, env=env)
+    else:
+        cluster_detail = yaml_dict[cluster]
+        # return jsonify(cluster_detail)
+        return render_template('show_cluster.html', data=json.dumps(cluster_detail,indent=4), env=env, cluster=cluster) 
 
 
 def get_environment_list():
@@ -103,43 +120,43 @@ def get_cluster_list(env):
 
     return(cluster_list)
 
-@app.route("/cluster/<cluster>")
-def cluster(cluster=None):
-    env = session.get("env","")
-    cluster_detail = yaml_dict[cluster]
-    # defaults = get_env_defaults()
-    # cluster = get_cluster_content(env, cluster)
-    # hosts = get_hosts(cluster, defaults)
-    return jsonify(cluster_detail) #render_template('cluster.html', data=cluster)
+# @app.route("/cluster/<cluster>")
+# def cluster(cluster=None):
+#     env = session.get("env","")
+#     cluster_detail = yaml_dict[cluster]
+#     # defaults = get_env_defaults()
+#     # cluster = get_cluster_content(env, cluster)
+#     # hosts = get_hosts(cluster, defaults)
+#     return jsonify(cluster_detail) #render_template('cluster.html', data=cluster)
 
 
 
 
 
 
-@app.route('/create', methods=['GET', 'POST'])
-def create():
-    names = ['alpha','beta']
-    # you must tell the variable 'form' what you named the class, above
-    # 'form' is the variable name used in this template: index.html
-    form = NameForm()
-    message = ""
-    if form.validate_on_submit():
-        name = form.name.data
-        type = form.type.data
-        version = form.version.data
-        primary_region = form.primary_region.data
-        primary_az = form.primary_az.data
-        dr_enabled = form.dr_enabled.data
-        if name.lower() in names:
-            # empty the form field
-            form.name.data = ""
-            id = names.get(name,'Unknown')
-            # redirect the browser to another route and template
-            return redirect( url_for('actor', id=id) )
-        else:
-            message = "That actor is not in our database."
-    return render_template('create.html', names=names, form=form, message=message)
+# @app.route('/create', methods=['GET', 'POST'])
+# def create():
+#     names = ['alpha','beta']
+#     # you must tell the variable 'form' what you named the class, above
+#     # 'form' is the variable name used in this template: index.html
+#     form = NameForm()
+#     message = ""
+#     if form.validate_on_submit():
+#         name = form.name.data
+#         type = form.type.data
+#         version = form.version.data
+#         primary_region = form.primary_region.data
+#         primary_az = form.primary_az.data
+#         dr_enabled = form.dr_enabled.data
+#         if name.lower() in names:
+#             # empty the form field
+#             form.name.data = ""
+#             id = names.get(name,'Unknown')
+#             # redirect the browser to another route and template
+#             return redirect( url_for('actor', id=id) )
+#         else:
+#             message = "That actor is not in our database."
+#     return render_template('create.html', names=names, form=form, message=message)
 
 if __name__ == '__main__':
     app.run(host="localhost", port=8080, debug=True)

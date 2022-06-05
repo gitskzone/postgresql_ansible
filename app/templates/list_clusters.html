@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<ul class="list-group">
+    <li class="list-group-item list-group-item-secondary"><b>{{ env }}</b></li>
+</ul>
+<div class="list-group">
+    {% for item in data %}
+        <a href="/clusters/{{ env }}/{{ item }}" class="list-group-item list-group-item-action">{{ item }}</a>
+    {% endfor %}
+</div>
+
+{% endblock %}
