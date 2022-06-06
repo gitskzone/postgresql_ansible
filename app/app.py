@@ -9,7 +9,10 @@ from flask_bootstrap import Bootstrap
 # from flask_wtf import FlaskForm
 # from wtforms import StringField, SubmitField, SelectField, BooleanField, FormField
 # from wtforms.validators import DataRequired
-from module.forms import *
+# from module.forms import *
+from redis_collections import Dict, List
+from redis import StrictRedis
+
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = "SuperSecretTestKey"
@@ -18,6 +21,12 @@ Bootstrap(app)
 github_branch = "dev"
 inventory_path = "inventory"
 yaml_dict = defaultdict(dict)
+
+conn = StrictRedis(host='localhost', port=6379)
+rd_clusters = Dict(redis=conn, writeback=True)
+rd_defaults = Dict(redis=conn, writeback=True)
+rd_envs = List(redis=conn, writeback=True)
+
 
 def get_repo():
     github_token = os.environ.get('GITHUB_TOKEN')
@@ -32,6 +41,36 @@ def get_env_defaults():
     yaml_dict = yaml.safe_load(contents.decoded_content.decode())
     return yaml_dict
 
+def read_git_content():
+    repo = get_repo()
+    inventory = inventory_path
+    clusters = defaultdict(dict)
+    environments = set()
+    defaults = defaultdict(dict)
+
+    contents = repo.get_contents(inventory, ref=github_branch)
+    
+    while contents:
+        file_content = contents.pop(0)
+        if file_content.type == "dir":
+            contents.extend(repo.get_contents(file_content.path, ref=github_branch))
+        else:
+            env_name = file_content.path.split('/')[-2]
+            if file_content.name == '_defaults.yaml':
+                defaults[env_name] = yaml.safe_load(file_content.decoded_content.decode())
+            else:
+                item_name = file_content.name.split('.')[0]
+                clusters[env_name][item_name] = yaml.safe_load(file_content.decoded_content.decode())
+                clusters[env_name][item_name]['environment'] = env_name
+                environments.add(env_name)
+
+    rd_clusters.update(clusters)
+
+    rd_defaults.update(defaults)
+    rd_envs.extend(list(environments))
+
+    return
+                
 def get_cluster_content(env=None,cluster=None):
     repo = get_repo()
 
@@ -59,8 +98,9 @@ def get_cluster_content(env=None,cluster=None):
 
 @app.route("/reload")
 def reload():
-    environment_list = get_environment_list()
-    session['environment_list'] = environment_list
+    read_git_content()
+    # environment_list = get_environment_list()
+    # session['environment_list'] = environment_list
     return redirect(url_for('.clusters'))
 
 # @app.route("/")
@@ -85,16 +125,36 @@ def reload():
 def clusters(env=None, cluster=None):
 
     if env == None and cluster == None:
-        environment_list = session.get('environment_list',[])
-        return render_template('list_envs.html', data=environment_list)
+        environment_list = rd_envs
+        if len(rd_envs) == 0:
+            return render_template('list_envs.html', data=[], msg="No data loaded")
+        else:
+            return render_template('list_envs.html', data=environment_list)
     elif env != None and cluster == None:
-        all_clusters = get_cluster_content(env)
+        all_clusters = rd_clusters[env]
         cluster_list = [item for item in all_clusters]
         return render_template('list_clusters.html', data=cluster_list, env=env)
     else:
-        cluster_detail = yaml_dict[cluster]
-        # return jsonify(cluster_detail)
-        return render_template('show_cluster.html', data=json.dumps(cluster_detail,indent=4), env=env, cluster=cluster) 
+        cluster_detail = rd_clusters[env][cluster]
+        return render_template('show_cluster.html', data=json.dumps(cluster_detail,indent=2), env=env, cluster=cluster) 
+
+
+# @app.route("/")
+# @app.route("/clusters/<env>")
+# @app.route("/clusters/<env>/<cluster>")
+# def clusters(env=None, cluster=None):
+
+#     if env == None and cluster == None:
+#         environment_list = session.get('environment_list',[])
+#         return render_template('list_envs.html', data=environment_list)
+#     elif env != None and cluster == None:
+#         all_clusters = get_cluster_content(env)
+#         cluster_list = [item for item in all_clusters]
+#         return render_template('list_clusters.html', data=cluster_list, env=env)
+#     else:
+#         cluster_detail = yaml_dict[cluster]
+#         # return jsonify(cluster_detail)
+#         return render_template('show_cluster.html', data=json.dumps(cluster_detail,indent=2), env=env, cluster=cluster) 
 
 
 def get_environment_list():
@@ -159,4 +219,4 @@ def get_cluster_list(env):
 #     return render_template('create.html', names=names, form=form, message=message)
 
 if __name__ == '__main__':
-    app.run(host="localhost", port=8080, debug=True)
+    app.run(host="localhost", port=8080, debug=False)
