@@ -1,5 +1,5 @@
 # from imp import reload
-from flask import Flask, jsonify, render_template, session, url_for, redirect
+from flask import Flask, jsonify, render_template, session, url_for, redirect, request
 from pathlib import Path
 from module.inventory import *
 from github import Github
@@ -23,9 +23,9 @@ inventory_path = "inventory"
 yaml_dict = defaultdict(dict)
 
 conn = StrictRedis(host='localhost', port=6379)
-rd_clusters = Dict(redis=conn, writeback=True)
-rd_defaults = Dict(redis=conn, writeback=True)
-rd_envs = List(redis=conn, writeback=True)
+rd_clusters = Dict(redis=conn, writeback=True, key="clusters")
+rd_defaults = Dict(redis=conn, writeback=True, key="defaults")
+rd_envs = List(redis=conn, writeback=True, key="envs")
 
 
 def get_repo():
@@ -34,12 +34,12 @@ def get_repo():
     repo = g.get_repo("gitskzone/postgresql_ansible")
     return repo
 
-def get_env_defaults():
-    repo = get_repo()
-    contents = repo.get_contents('/'.join([inventory_path,"_defaults.yaml"]),ref=github_branch)
-    # yaml_dict = defaultdict(dict)
-    yaml_dict = yaml.safe_load(contents.decoded_content.decode())
-    return yaml_dict
+# def get_env_defaults():
+#     repo = get_repo()
+#     contents = repo.get_contents('/'.join([inventory_path,"_defaults.yaml"]),ref=github_branch)
+#     # yaml_dict = defaultdict(dict)
+#     yaml_dict = yaml.safe_load(contents.decoded_content.decode())
+#     return yaml_dict
 
 def read_git_content():
     repo = get_repo()
@@ -64,37 +64,41 @@ def read_git_content():
                 clusters[env_name][item_name]['environment'] = env_name
                 environments.add(env_name)
 
+    rd_clusters.clear()
     rd_clusters.update(clusters)
 
+    rd_defaults.clear()
     rd_defaults.update(defaults)
+
+    rd_envs.clear()
     rd_envs.extend(list(environments))
 
     return
                 
-def get_cluster_content(env=None,cluster=None):
-    repo = get_repo()
+# def get_cluster_content(env=None,cluster=None):
+#     repo = get_repo()
 
-    if env != None:
-        inventory = '/'.join([inventory_path,env])
-    else:
-        inventory = inventory_path
-    if cluster == None:
-        contents = repo.get_contents(inventory, ref=github_branch)
-        while contents:
-            file_content = contents.pop(0)
-            if file_content.type == "dir":
-                contents.extend(repo.get_contents(file_content.path, ref=github_branch))
-            else:
-                if file_content.name != '_defaults.yaml':
-                    item_name = file_content.name.split('.')[0]
-                    yaml_dict[item_name] = yaml.safe_load(file_content.decoded_content.decode())
-                    yaml_dict[item_name]['environment'] = file_content.path.split('/')[-2]
-    else:
-        file_content = repo.get_contents('/'.join([inventory,cluster]),ref=github_branch)
-        item_name = file_content.name.split('.')[0]
-        yaml_dict[item_name] = yaml.safe_load(file_content.decoded_content.decode())
-        yaml_dict[item_name]['environment'] = file_content.path.split('/')[-2]
-    return yaml_dict
+#     if env != None:
+#         inventory = '/'.join([inventory_path,env])
+#     else:
+#         inventory = inventory_path
+#     if cluster == None:
+#         contents = repo.get_contents(inventory, ref=github_branch)
+#         while contents:
+#             file_content = contents.pop(0)
+#             if file_content.type == "dir":
+#                 contents.extend(repo.get_contents(file_content.path, ref=github_branch))
+#             else:
+#                 if file_content.name != '_defaults.yaml':
+#                     item_name = file_content.name.split('.')[0]
+#                     yaml_dict[item_name] = yaml.safe_load(file_content.decoded_content.decode())
+#                     yaml_dict[item_name]['environment'] = file_content.path.split('/')[-2]
+#     else:
+#         file_content = repo.get_contents('/'.join([inventory,cluster]),ref=github_branch)
+#         item_name = file_content.name.split('.')[0]
+#         yaml_dict[item_name] = yaml.safe_load(file_content.decoded_content.decode())
+#         yaml_dict[item_name]['environment'] = file_content.path.split('/')[-2]
+#     return yaml_dict
 
 @app.route("/reload")
 def reload():
@@ -136,7 +140,15 @@ def clusters(env=None, cluster=None):
         return render_template('list_clusters.html', data=cluster_list, env=env)
     else:
         cluster_detail = rd_clusters[env][cluster]
-        return render_template('show_cluster.html', data=json.dumps(cluster_detail,indent=2), env=env, cluster=cluster) 
+        output_type = request.args.get('format', 'json')
+        if output_type == 'yaml':
+            output = yaml.dump(cluster_detail, default_flow_style=False, sort_keys=False)
+        else:
+            output = json.dumps(cluster_detail,indent=2, sort_keys=False)
+
+        return render_template('show_cluster.html', data=output, env=env, cluster=cluster) 
+
+        #return render_template('show_cluster.html', data=json.dumps(cluster_detail,indent=2), env=env, cluster=cluster) 
 
 
 # @app.route("/")

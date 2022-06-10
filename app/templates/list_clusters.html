@@ -2,7 +2,7 @@
 
 {% block content %}
 <ul class="list-group">
-    <li class="list-group-item list-group-item-secondary"><b>{{ env }}</b></li>
+    <li class="list-group-item list-group-item-secondary"><b>{{ env }} </b><a href="/{{env}}/all">(show all)</a> </li>
 </ul>
 <div class="list-group">
     {% for item in data %}
